@@ -7,10 +7,10 @@ import './PaginaRegistro.css'
 const ZONAS = ['Bragado', 'Salto', 'Chacabuco', 'La Plata', 'Tandil', 'Pergamino', 'Tres Arroyos', 'Coronel Suárez']
 const CULTIVOS = ['Trigo', 'Soja', 'Maíz', 'Girasol', 'Cebada', 'Avena', 'Pastura']
 
-export default function PaginaRegistro({ onClose }) {
+export default function PaginaRegistro({ onClose, zonesPreselected = [] }) {
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
-  const [zona, setZona] = useState('Bragado')
+  const [zonasSeleccionadas, setZonasSeleccionadas] = useState(zonesPreselected)
   const [cultivosSeleccionados, setCultivosSeleccionados] = useState([])
   const [cargando, setCargando] = useState(false)
   const [cargandoDatos, setCargandoDatos] = useState(true)
@@ -19,7 +19,10 @@ export default function PaginaRegistro({ onClose }) {
 
   useEffect(() => {
     cargarDatos()
-  }, [])
+    if (zonesPreselected.length > 0) {
+      setZonasSeleccionadas(zonesPreselected)
+    }
+  }, [zonesPreselected])
 
   const cargarDatos = async () => {
     try {
@@ -33,7 +36,7 @@ export default function PaginaRegistro({ onClose }) {
         const data = docSnap.data()
         setNombre(data.nombre || '')
         setTelefono(data.telefono?.replace('+54 ', '') || '')
-        setZona(data.zona || 'Bragado')
+        setZonasSeleccionadas(data.zonas || zonesPreselected)
         setCultivosSeleccionados(data.cultivos || [])
       }
     } catch (err) {
@@ -41,6 +44,14 @@ export default function PaginaRegistro({ onClose }) {
     } finally {
       setCargandoDatos(false)
     }
+  }
+
+  const toggleZona = (zona) => {
+    setZonasSeleccionadas(prev =>
+      prev.includes(zona)
+        ? prev.filter(z => z !== zona)
+        : [...prev, zona]
+    )
   }
 
   const toggleCultivo = (cultivo) => {
@@ -66,6 +77,11 @@ export default function PaginaRegistro({ onClose }) {
       return
     }
 
+    if (zonasSeleccionadas.length === 0) {
+      setError('Selecciona al menos una zona')
+      return
+    }
+
     setCargando(true)
 
     try {
@@ -75,7 +91,7 @@ export default function PaginaRegistro({ onClose }) {
       await setDoc(doc(db, 'agronomos', uid), {
         nombre: nombre.trim(),
         telefono: `+54 ${telefono.trim()}`,
-        zona,
+        zonas: zonasSeleccionadas,
         cultivos: cultivosSeleccionados,
         estado: 'Activo',
         actualizado: new Date().toISOString(),
@@ -135,12 +151,19 @@ export default function PaginaRegistro({ onClose }) {
           </div>
 
           <div className="form-group">
-            <label>Zona de trabajo</label>
-            <select value={zona} onChange={(e) => setZona(e.target.value)}>
-              {ZONAS.map(z => (
-                <option key={z} value={z}>{z}</option>
+            <label>Zonas de trabajo (clickea en el mapa o selecciona aquí)</label>
+            <div className="zonas-grid">
+              {ZONAS.map(zona => (
+                <button
+                  key={zona}
+                  type="button"
+                  className={`chip ${zonasSeleccionadas.includes(zona) ? 'selected' : ''}`}
+                  onClick={() => toggleZona(zona)}
+                >
+                  {zona}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           <div className="form-group">
