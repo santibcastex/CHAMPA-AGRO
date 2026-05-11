@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { GoogleMap, LoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api'
-import { collection, onSnapshot, signInAnonymously } from 'firebase/firestore'
+import { signInAnonymously } from 'firebase/auth'
 import { db, auth } from './firebase-config'
 import PaginaMapa from './pages/PaginaMapa'
 import './App.css'
