@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { GoogleMap, LoadScript, MarkerF, InfoWindowF, MarkerClustererF } from '@react-google-maps/api'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { db } from '../firebase-config'
+import { db, GOOGLE_MAPS_API_KEY } from '../firebase-config'
 import PaginaRegistro from './PaginaRegistro'
 import { MapPin, Phone, Leaf, Plus } from 'lucide-react'
 import './PaginaMapa.css'
@@ -65,7 +65,7 @@ export default function PaginaMapa() {
         <p className="subtitle">{agronomos.length} agronomos activos</p>
       </header>
 
-      <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+      <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
         <GoogleMap
           zoom={6.5}
           center={{ lat: -35.0, lng: -63.0 }}
