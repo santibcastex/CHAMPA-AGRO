@@ -1,0 +1,25 @@
+name: champa_agro
+description: "App para localizar agronomos por zona de trabajo."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  google_maps_flutter: ^2.5.0
+  cloud_firestore: ^4.13.0
+  firebase_auth: ^4.10.0
+  firebase_core: ^2.20.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
