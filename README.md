@@ -1,24 +1,32 @@
 # CHAMPA AGRO
 
-App móvil para localizar agronomos por zona de trabajo.
+App web (mobile-friendly) para localizar agronomos por zona de trabajo.
 
 ## Características
 
-- 📍 Mapa interactivo con ubicaciones de agronomos
+- 📍 Mapa interactivo con Google Maps
 - 👤 Registro de perfil (nombre, teléfono, zona, cultivos)
-- 🌾 Búsqueda y visualización por zona
+- 🌾 Clustering automático de agronomos
 - ⚡ Sincronización en tiempo real con Firebase
+- 📱 Totalmente responsive para celular
+
+## Tech Stack
+
+- **Frontend**: React 18 + Vite
+- **Backend**: Firebase (Firestore + Auth)
+- **Mapas**: Google Maps API
+- **Deploy**: Vercel
 
 ## Requisitos
 
-- Flutter 3.0+
-- Dart 3.0+
-- Firebase Project configurado
+- Node.js 16+
+- npm o yarn
+- Firebase Project
 - Google Maps API Key
 
-## Setup
+## Setup Local
 
-### 1. Clonar el repo
+### 1. Clonar y entrar al repo
 
 ```bash
 git clone https://github.com/tu-usuario/CHAMPA-AGRO.git
@@ -28,123 +36,120 @@ cd CHAMPA-AGRO
 ### 2. Instalar dependencias
 
 ```bash
-flutter pub get
+npm install
 ```
 
-### 3. Configurar Firebase
+### 3. Configurar variables de entorno
 
 ```bash
-flutterfire configure
+cp .env.example .env.local
 ```
 
-Este comando:
-- Te pedirá seleccionar el proyecto Firebase
-- Generará automáticamente `lib/firebase_options.dart` con tus credenciales
-
-### 4. Configurar Google Maps API
-
-**Android:**
-- Ir a `android/app/src/main/AndroidManifest.xml`
-- Agregar tu API Key:
-```xml
-<application>
-  ...
-  <meta-data
-    android:name="com.google.android.geo.API_KEY"
-    android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
-</application>
+Editar `.env.local` con tus credenciales:
+```
+VITE_FIREBASE_API_KEY=xxx
+VITE_FIREBASE_PROJECT_ID=xxx
+VITE_GOOGLE_MAPS_API_KEY=xxx
+# ... resto de variables
 ```
 
-**iOS:**
-- Ir a `ios/Runner/GeneratedPluginRegistrant.m`
-- O configurar en `ios/Runner/Info.plist`
-
-### 5. Ejecutar
+### 4. Ejecutar en desarrollo
 
 ```bash
-flutter run
+npm run dev
+```
+
+Abre `http://localhost:3000` en el navegador.
+
+### 5. Build para producción
+
+```bash
+npm run build
 ```
 
 ## Estructura del proyecto
 
 ```
-lib/
-├── main.dart              # Punto de entrada
-├── firebase_options.dart  # Config Firebase (auto-generada)
+src/
+├── main.jsx                 # Punto de entrada React
+├── App.jsx                  # Componente raíz
+├── firebase-config.js       # Config Firebase
 ├── pages/
-│   ├── mapa_page.dart     # Pantalla principal
-│   └── registro_page.dart # Formulario de registro
-└── models/                # Modelos de datos (futuro)
+│   ├── PaginaMapa.jsx       # Mapa principal
+│   ├── PaginaMapa.css
+│   ├── PaginaRegistro.jsx   # Formulario
+│   └── PaginaRegistro.css
+└── index.css                # Estilos globales
+
+public/
+└── index.html               # HTML raíz
 ```
 
-## Firestore Structure
+## Firestore Rules
 
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /agronomos/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == uid;
+    }
+  }
+}
 ```
-agronomos/
-├── {uid}/
-│   ├── nombre: string
-│   ├── telefono: string
-│   ├── zona: string
-│   ├── cultivos: array
-│   ├── estado: string
-│   └── actualizado: timestamp
-```
 
-## Zonas disponibles
+## Deploy en Vercel
 
-- Bragado
-- Salto
-- Chacabuco
-- La Plata
-- Tandil
-- Pergamino
-- Tres Arroyos
-- Coronel Suárez
-
-## Cultivos disponibles
-
-- Trigo
-- Soja
-- Maíz
-- Girasol
-- Cebada
-- Avena
-- Pastura
-
-## Build & Deploy
-
-### APK (Android)
+### 1. Pushear a GitHub
 
 ```bash
-flutter build apk --release
+git add .
+git commit -m "Deploy ready"
+git push origin main
 ```
 
-### Instalar localmente
+### 2. Conectar en Vercel
 
-```bash
-flutter install
-```
+1. Ir a https://vercel.com
+2. Click "New Project"
+3. Seleccionar repo CHAMPA-AGRO
+4. Environment Variables:
+   - Agregar todas las variables de `.env.example`
+5. Click "Deploy"
+
+**URL:** `https://champa-agro.vercel.app`
+
+## Variables de Entorno
+
+Necesarias:
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_GOOGLE_MAPS_API_KEY`
 
 ## Troubleshooting
 
-### "flutter: command not found"
-```bash
-# Agregar Flutter al PATH
-export PATH="$PATH:[FLUTTER_SDK]/bin"
-```
+### "VITE_GOOGLE_MAPS_API_KEY is undefined"
+Verificar que `.env.local` tenga todas las variables y que Vite haya sido reiniciado.
+
+### Mapa no carga
+1. Verificar API Key en Google Cloud Console
+2. Habilitar "Maps JavaScript API"
+3. Verificar restricciones de dominio
 
 ### Firebase no conecta
-- Verificar que `google-services.json` esté en `android/app/`
-- Verificar que `GoogleService-Info.plist` esté en `ios/Runner/`
-
-### Google Maps no aparece
-- Verificar API Key en AndroidManifest.xml
-- Habilitar Maps JavaScript API en Google Cloud Console
-
-## Autor
-
-Santi - Agro Neros S.A.
+1. Verificar proyecto ID
+2. Chequear Firestore Rules
+3. Revisar autenticación anónima habilitada
 
 ## Licencia
 
 MIT
+
+## Autor
+
+Santi - Agro Neros S.A.
