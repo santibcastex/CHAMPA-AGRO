@@ -4,12 +4,26 @@ import { db, auth } from '../firebase-config'
 import { X, Check } from 'lucide-react'
 import './PaginaRegistro.css'
 
+const TIPOS_USUARIO = [
+  'Productor Agrícola',
+  'Productor Ganadero',
+  'Productor Mixto',
+  'Ingeniero Agrónomo',
+  'Veterinario',
+  'Administrador',
+  'Comercial Agropecuario',
+  'Dirigente',
+  'Agro-industria',
+  'Comercio Exterior'
+]
+
 const ZONAS = ['Bragado', 'Salto', 'Chacabuco', 'La Plata', 'Tandil', 'Pergamino', 'Tres Arroyos', 'Coronel Suárez']
 const CULTIVOS = ['Trigo', 'Soja', 'Maíz', 'Girasol', 'Cebada', 'Avena', 'Pastura']
 
 export default function PaginaRegistro({ onClose, zonesPreselected = [] }) {
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [tipoUsuario, setTipoUsuario] = useState('Productor Agrícola')
   const [zonasSeleccionadas, setZonasSeleccionadas] = useState(zonesPreselected)
   const [cultivosSeleccionados, setCultivosSeleccionados] = useState([])
   const [cargando, setCargando] = useState(false)
@@ -36,6 +50,7 @@ export default function PaginaRegistro({ onClose, zonesPreselected = [] }) {
         const data = docSnap.data()
         setNombre(data.nombre || '')
         setTelefono(data.telefono?.replace('+54 ', '') || '')
+        setTipoUsuario(data.tipoUsuario || 'Productor Agrícola')
         setZonasSeleccionadas(data.zonas || zonesPreselected)
         setCultivosSeleccionados(data.cultivos || [])
       }
@@ -91,6 +106,7 @@ export default function PaginaRegistro({ onClose, zonesPreselected = [] }) {
       await setDoc(doc(db, 'agronomos', uid), {
         nombre: nombre.trim(),
         telefono: `+54 ${telefono.trim()}`,
+        tipoUsuario,
         zonas: zonasSeleccionadas,
         cultivos: cultivosSeleccionados,
         estado: 'Activo',
@@ -148,6 +164,15 @@ export default function PaginaRegistro({ onClose, zonesPreselected = [] }) {
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="9 1234567 (sin +54 ni 0)"
             />
+          </div>
+
+          <div className="form-group">
+            <label>¿Qué sos?</label>
+            <select value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value)}>
+              {TIPOS_USUARIO.map(tipo => (
+                <option key={tipo} value={tipo}>{tipo}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
