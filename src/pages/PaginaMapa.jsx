@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react'
-import { GoogleMap, LoadScript, MarkerF, InfoWindowF, MarkerClustererF } from '@react-google-maps/api'
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { db, GOOGLE_MAPS_API_KEY } from '../firebase-config'
+import { db } from '../firebase-config'
 import PaginaRegistro from './PaginaRegistro'
-import { MapPin, Phone, Leaf, Plus, Trash2 } from 'lucide-react'
+import { MapPin, Phone, Leaf, Plus } from 'lucide-react'
 import './PaginaMapa.css'
+
+// Fix para los iconos de Leaflet
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
 
 const ZONAS = {
   'Bragado': { lat: -35.111, lng: -60.483 },
@@ -17,13 +26,38 @@ const ZONAS = {
   'Coronel Suárez': { lat: -37.994, lng: -61.982 },
 }
 
+const greenIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const yellowIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click(e) {
+      onMapClick(e)
+    }
+  })
+  return null
+}
+
 export default function PaginaMapa() {
   const [agronomos, setAgronomos] = useState([])
-  const [infoWindow, setInfoWindow] = useState(null)
   const [mostrarRegistro, setMostrarRegistro] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedZones, setSelectedZones] = useState([])
-  const [mapClicked, setMapClicked] = useState(null)
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -45,17 +79,10 @@ export default function PaginaMapa() {
     return () => unsubscribe()
   }, [])
 
-  const marcadores = agronomos.map(agro => {
-    const zona = agro.zona
-    const coords = ZONAS[zona]
-    return coords ? { ...agro, coords } : null
-  }).filter(Boolean)
-
   const handleMapClick = (e) => {
-    const clickedLat = e.latLng.lat()
-    const clickedLng = e.latLng.lng()
+    const clickedLat = e.latlng.lat
+    const clickedLng = e.latlng.lng
 
-    // Encontrar la zona más cercana
     let closestZona = null
     let minDistance = Infinity
 
@@ -69,7 +96,7 @@ export default function PaginaMapa() {
       }
     })
 
-    if (closestZona && minDistance < 1) { // Distancia máxima de ~1 grado
+    if (closestZona && minDistance < 1) {
       if (selectedZones.includes(closestZona)) {
         setSelectedZones(selectedZones.filter(z => z !== closestZona))
       } else {
@@ -82,12 +109,7 @@ export default function PaginaMapa() {
     setSelectedZones([])
   }
 
-  const openRegistroWithZones = () => {
-    // Pasar zonas seleccionadas al registro
-    setMostrarRegistro(true)
-  }
-
-  if (loading && agronomos.length === 0) {
+  if (loading) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
@@ -109,86 +131,82 @@ export default function PaginaMapa() {
         )}
       </header>
 
-      <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-        <GoogleMap
-          zoom={6.5}
-          center={{ lat: -35.0, lng: -63.0 }}
-          mapContainerClassName="map-container"
-          options={{
-            fullscreenControl: true,
-            streetViewControl: false,
-            mapTypeControl: false,
-          }}
-          onClick={handleMapClick}
-        >
-          <MarkerClustererF>
-            {(clusterer) =>
-              marcadores.map((agro) => (
-                <MarkerF
-                  key={agro.id}
-                  position={agro.coords}
-                  clusterer={clusterer}
-                  title={agro.nombre}
-                  onClick={() => setInfoWindow(agro)}
-                />
-              ))
-            }
-          </MarkerClustererF>
+      <MapContainer
+        center={[-35.0, -63.0]}
+        zoom={6}
+        scrollWheelZoom={true}
+        className="map-container"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-          {/* Marcadores de zonas seleccionadas */}
-          {selectedZones.map(zona => (
-            <MarkerF
-              key={`selected-${zona}`}
-              position={ZONAS[zona]}
-              title={zona}
-              icon={{
-                path: 'M0-48c-9.8 0-20 7.9-20 17.6C-20-15.6 0 0 0 0s20-15.6 20-30.4C20-40.1 9.8-48 0-48z',
-                fillColor: '#fbbf24',
-                fillOpacity: 1,
-                strokeColor: '#f59e0b',
-                strokeWeight: 2,
-                scale: 1.5,
-              }}
-              onClick={() => setInfoWindow({ zona, coords: ZONAS[zona] })}
-            />
-          ))}
+        <MapClickHandler onMapClick={handleMapClick} />
 
-          {infoWindow && (
-            <InfoWindowF
-              position={infoWindow.coords}
-              onCloseClick={() => setInfoWindow(null)}
-            >
-              <div className="info-window">
-                <h3>{infoWindow.nombre || infoWindow.zona}</h3>
-                {infoWindow.nombre && (
-                  <>
-                    <div className="info-row">
-                      <MapPin size={16} />
-                      <span>{infoWindow.zona}</span>
+        {/* Marcadores de agronomos */}
+        {agronomos.map((agro) => {
+          const zonas = agro.zonas || [agro.zona]
+          return zonas.map((zona, idx) => {
+            const coords = ZONAS[zona]
+            if (!coords) return null
+            return (
+              <Marker
+                key={`${agro.id}-${idx}`}
+                position={[coords.lat, coords.lng]}
+                icon={greenIcon}
+              >
+                <Popup>
+                  <div className="popup-content">
+                    <h3>{agro.nombre}</h3>
+                    <div className="popup-row">
+                      <MapPin size={14} />
+                      <span>{zona}</span>
                     </div>
-                    <div className="info-row">
-                      <Phone size={16} />
-                      <a href={`tel:${infoWindow.telefono}`}>{infoWindow.telefono}</a>
+                    <div className="popup-row">
+                      <Phone size={14} />
+                      <a href={`tel:${agro.telefono}`}>{agro.telefono}</a>
                     </div>
-                    {infoWindow.cultivos?.length > 0 && (
-                      <div className="info-row">
-                        <Leaf size={16} />
-                        <span>{infoWindow.cultivos.join(', ')}</span>
+                    {agro.tipoUsuario && (
+                      <div className="popup-row">
+                        <span className="badge">{agro.tipoUsuario}</span>
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            </InfoWindowF>
-          )}
-        </GoogleMap>
-      </LoadScript>
+                    {agro.cultivos?.length > 0 && (
+                      <div className="popup-row">
+                        <Leaf size={14} />
+                        <span>{agro.cultivos.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            )
+          })
+        })}
+
+        {/* Marcadores de zonas seleccionadas */}
+        {selectedZones.map(zona => {
+          const coords = ZONAS[zona]
+          return (
+            <Marker
+              key={`selected-${zona}`}
+              position={[coords.lat, coords.lng]}
+              icon={yellowIcon}
+            >
+              <Popup>
+                <strong>{zona}</strong> (seleccionada)
+              </Popup>
+            </Marker>
+          )
+        })}
+      </MapContainer>
 
       <div className="fab-container">
         {selectedZones.length > 0 && (
           <button
             className="btn-registrar"
-            onClick={openRegistroWithZones}
+            onClick={() => setMostrarRegistro(true)}
             title="Registrarse con zonas seleccionadas"
           >
             <span>{selectedZones.join(', ')}</span>
